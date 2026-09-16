@@ -8,6 +8,18 @@ from datetime import datetime
 # Seitenkonfiguration
 st.set_page_config(page_title="AI Stock Screener 2026", page_icon="📈", layout="wide")
 
+# 🔴 Roter, kursiver Disclaimer ganz oben
+st.markdown(
+    """
+    <div style="background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 5px solid #ff4d4d; margin-bottom: 20px;">
+        <p style="color: #cc0000; font-style: italic; font-weight: bold; margin: 0;">
+            ⚠️ Achtung, ist nur eine Testumgebung von Mag. Ralph Gollner, der erstmals einen KI-Agent aufgesetzt hat. Alle Angaben ohne Gewähr und keine Aktienempfehlung(en)!
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 st.title("🤖 Live AI-Agent: Stock Screener (> 4B Market Cap)")
 st.markdown("**Filter-Raster:** Market Cap **> $4B** (Nach oben offen) | ROIC >15% | Forward PE <35 | EV/FCF <35 | Piotroski 7–9 | Crossovers (<40d)")
 
@@ -96,4 +108,6 @@ if search:
 
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-st.success(f"Daten erfolgreich geladen am {datetime.now().strftime('%d.%m.%Y')}. Tabellen-Layout korrigiert.")
+st.success(f"Daten erfolgreich geladen am {datetime.now().strftime('%d.%m.%Y')}.")
+
+
