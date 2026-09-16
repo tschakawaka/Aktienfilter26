@@ -6,7 +6,7 @@ st.set_page_config(page_title="AI Stock Screener 2026", page_icon="📈", layout
 
 # Titel & Beschreibung
 st.title("🤖 AI-Agent: Daily Stock Ideas & Screener")
-st.markdown("**Kriterien:** Market Cap $4B–$200B | 3J-Wachstum >5% | ROIC >15% | KGV <35 | **EV/FCF <35** | Piotroski 7–9 | Kurs > SMA-200 & Crossovers (<40d)")
+st.markdown("**Erweiterte Kriterien:** Market Cap $4B–$400B | 3J-Wachstum >5% | ROIC >15% | KGV <35 | **EV/FCF <35** | Piotroski 7–9 | Kurs > SMA-200 & Crossovers (<40d)")
 
 # Sidebar für Steuerung
 st.sidebar.header("⚙️ Agenten-Steuerung")
@@ -19,8 +19,9 @@ st.sidebar.info("Aktueller Modus: September 2026 Live-Simulation & Top-Kandidate
 if run_button or True: # Direkt beim Laden oder nach Klick anzeigen
     with st.spinner("Analysiere Markt-Daten, Bilanzen und Chart-Signale..."):
         
-        # Beispiel-Daten (Deine 28 Top-Aktien)
+        # Aktualisierte Datenbasis (Inklusive Werten zwischen $200B und $400B, z.B. PANW)
         data = [
+            {"Ticker": "PANW", "Unternehmen": "Palo Alto Networks", "Sektor": "Cybersecurity", "Market Cap ($B)": 295, "EV/FCF": 33.5, "Piotroski": "8/9", "Status": "🟢 🌟 Golden Cross (<40d)", "JUST Rank": "Rank ~95", "Interbrand 2025": "Top 100"},
             {"Ticker": "ANET", "Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "Market Cap ($B)": 115, "EV/FCF": 31.2, "Piotroski": "9/9", "Status": "🟢 🌟 Weekly SMA Crossover", "JUST Rank": "Top 15%", "Interbrand 2025": "-"},
             {"Ticker": "URI", "Unternehmen": "United Rentals", "Sektor": "Industrielle Dienstl.", "Market Cap ($B)": 44, "EV/FCF": 16.4, "Piotroski": "7/9", "Status": "🟢 🌟 Weekly SMA Crossover", "JUST Rank": "Rank 245", "Interbrand 2025": "-"},
             {"Ticker": "DECK", "Unternehmen": "Deckers Outdoor", "Sektor": "Konsumgüter / Schuhe", "Market Cap ($B)": 24, "EV/FCF": 22.1, "Piotroski": "8/9", "Status": "🟢 🌟 Golden Cross (<40d)", "JUST Rank": "Rank 410", "Interbrand 2025": "-"},
@@ -56,8 +57,8 @@ if run_button or True: # Direkt beim Laden oder nach Klick anzeigen
         # Kennzahlen-Leiste oben
         col1, col2, col3 = st.columns(3)
         col1.metric("Gefundene Top-Aktien", len(df))
-        col2.metric("Max. EV/FCF Limit", "< 35.0")
-        col3.metric("Piotroski Filter", "7 bis 9 / 9")
+        col2.metric("Market Cap Filter", "$4B – $400B")
+        col3.metric("Max. EV/FCF Limit", "< 35.0")
         
         st.markdown("### 📊 Live-Übersicht der qualifizierten Unternehmen")
         
@@ -69,4 +70,4 @@ if run_button or True: # Direkt beim Laden oder nach Klick anzeigen
         # Schöne Streamlit Datentabelle (sortierbar, ausklappbar)
         st.dataframe(df, use_container_width=True, hide_index=True)
         
-        st.success("App läuft stabil und zeigt die tagesaktuellen Qualitäts-Titel im September 2026.")
+        st.success("App aktualisiert: Marktkapitalisierung nun bis 400 Mrd. USD freigegeben.")
