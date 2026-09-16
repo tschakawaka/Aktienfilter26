@@ -36,7 +36,7 @@ st.sidebar.header("⚙️ Steuerung")
 validate_gf = st.sidebar.checkbox("🔍 Live-Abgleich mit GuruFocus F-Score", value=True)
 force_refresh = st.sidebar.button("🔄 Daten aktualisieren", type="primary")
 
-# Verifizierte Top-Liste (Marktkapitalisierung nun > $4B, inkl. Mega-Caps)
+# Verifizierte Top-Liste (Marktkapitalisierung > $4B, inkl. Mega-Caps)
 @st.cache_data
 def get_stock_data():
     return [
@@ -70,7 +70,7 @@ def get_stock_data():
         {"Ticker": "TTWO", "Unternehmen": "Take-Two Interactive", "Sektor": "Gaming & Software", "Market Cap ($B)": 28, "Forward PE": 28.0, "EV/FCF": 29.5, "Umsatz (3J)": "📈 Steigend", "Earnings (3J)": "📈 Steigend", "Piotroski": "7/9", "Status": "🟢 🌟 Golden Cross (<40d)", "JUST Rank": "Rank 490"},
         {"Ticker": "ZBRA", "Unternehmen": "Zebra Technologies", "Sektor": "Auto-ID / Hardware", "Market Cap ($B)": 19, "Forward PE": 24.5, "EV/FCF": 25.6, "Umsatz (3J)": "📈 Steigend", "Earnings (3J)": "📈 Steigend", "Piotroski": "8/9", "Status": "🟢 🌟 Weekly Crossover", "JUST Rank": "Rank 530"},
         {"Ticker": "CG", "Unternehmen": "The Carlyle Group", "Sektor": "Asset Management", "Market Cap ($B)": 16, "Forward PE": 14.0, "EV/FCF": 15.2, "Umsatz (3J)": "📈 Steigend", "Earnings (3J)": "📈 Steigend", "Piotroski": "8/9", "Status": "🟢 🌟 Golden Cross (<40d)", "JUST Rank": "Rank 590"},
-        {"Ticker": "RSG", "Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "Markt Cap ($B)": 62, "Forward PE": 28.5, "EV/FCF": 27.8, "Umsatz (3J)": "📈 Steigend", "Earnings (3J)": "📈 Steigend", "Piotroski": "9/9", "Status": "🟢 🌟 Weekly Crossover", "JUST Rank": "Top 10%"}
+        {"Ticker": "RSG", "Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "Market Cap ($B)": 62, "Forward PE": 28.5, "EV/FCF": 27.8, "Umsatz (3J)": "📈 Steigend", "Earnings (3J)": "📈 Steigend", "Piotroski": "9/9", "Status": "🟢 🌟 Weekly Crossover", "JUST Rank": "Top 10%"}
     ]
 
 with st.spinner("Lade Daten..."):
@@ -96,4 +96,4 @@ if search:
 
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-st.success(f"Daten erfolgreich geladen am {datetime.now().strftime('%d.%m.%Y')}. Filter Market Cap > 4B aktiv.")
+st.success(f"Daten erfolgreich geladen am {datetime.now().strftime('%d.%m.%Y')}. Tabellen-Layout korrigiert.")
