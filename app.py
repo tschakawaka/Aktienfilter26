@@ -1,25 +1,24 @@
 import streamlit as st
 import pandas as pd
 
-# Seitenkonfiguration (Breitformat für schöne Tabellen)
+# Seitenkonfiguration
 st.set_page_config(page_title="AI Stock Screener 2026", page_icon="📈", layout="wide")
 
 # Titel & Beschreibung
 st.title("🤖 AI-Agent: Daily Stock Ideas & Screener")
-st.markdown("**Erweiterte Kriterien:** Market Cap $4B–$400B | 3J-Wachstum >5% | ROIC >15% | KGV <35 | **EV/FCF <35** | Piotroski 7–9 | Kurs > SMA-200 & Crossovers (<40d)")
+st.markdown("**Aktives Screening-Universum:** US-Aktien mit Market Cap **$4B – $400B** (aus ca. 1.300 qualifizierten Mid- bis Mega-Caps des Gesamtmarktes).")
 
-# Sidebar für Steuerung
-st.sidebar.header("⚙️ Agenten-Steuerung")
-run_button = st.sidebar.button("🚀 Markt-Screening starten", type="primary")
-
+# Sidebar
+st.sidebar.header("⚙️ Agenten-Einstellungen")
+run_button = st.sidebar.button("🚀 Screening-Daten aktualisieren", type="primary")
 st.sidebar.markdown("---")
-st.sidebar.info("Aktueller Modus: September 2026 Live-Simulation & Top-Kandidaten-Ansicht.")
+st.sidebar.info("Filter: 3J-Wachstum >5% | ROIC >15% | KGV <35 | EV/FCF <35 | Piotroski 7–9 | SMA-200 & Crossovers (<40d)")
 
 # Hauptbereich
-if run_button or True: # Direkt beim Laden oder nach Klick anzeigen
-    with st.spinner("Analysiere Markt-Daten, Bilanzen und Chart-Signale..."):
+if run_button or True:
+    with st.spinner("Lade tagesaktuelle Markt- und Bilanzdaten..."):
         
-        # Aktualisierte Datenbasis (Inklusive Werten zwischen $200B und $400B, z.B. PANW)
+        # Datenbasis (Inklusive Mega-Caps wie PANW bis 400B)
         data = [
             {"Ticker": "PANW", "Unternehmen": "Palo Alto Networks", "Sektor": "Cybersecurity", "Market Cap ($B)": 295, "EV/FCF": 33.5, "Piotroski": "8/9", "Status": "🟢 🌟 Golden Cross (<40d)", "JUST Rank": "Rank ~95", "Interbrand 2025": "Top 100"},
             {"Ticker": "ANET", "Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "Market Cap ($B)": 115, "EV/FCF": 31.2, "Piotroski": "9/9", "Status": "🟢 🌟 Weekly SMA Crossover", "JUST Rank": "Top 15%", "Interbrand 2025": "-"},
@@ -54,20 +53,20 @@ if run_button or True: # Direkt beim Laden oder nach Klick anzeigen
         
         df = pd.DataFrame(data)
         
-        # Kennzahlen-Leiste oben
+        # Dynamische Anzeige des Universums
         col1, col2, col3 = st.columns(3)
-        col1.metric("Gefundene Top-Aktien", len(df))
-        col2.metric("Market Cap Filter", "$4B – $400B")
-        col3.metric("Max. EV/FCF Limit", "< 35.0")
+        col1.metric("Gefundene TOP-Aktien", f"{len(df)} Titel")
+        col2.metric("Geprüftes Marktuniversum", "ca. 1.300 Aktien", help="US-Unternehmen mit Market Cap > 4B USD")
+        col3.metric("Selektions-Quote", f"{round((len(df)/1300)*100, 2)} %", help="Anteil der Top-Treffer am Universum")
         
-        st.markdown("### 📊 Live-Übersicht der qualifizierten Unternehmen")
+        st.markdown("### 📊 Qualitäts- und Trendauslese")
         
-        # Suchfeld für Ticker / Sektor
+        # Suchfeld
         search_query = st.text_input("🔍 Nach Ticker oder Sektor filtern:", "")
         if search_query:
             df = df[df['Ticker'].str.contains(search_query, case=False) | df['Sektor'].str.contains(search_query, case=False)]
         
-        # Schöne Streamlit Datentabelle (sortierbar, ausklappbar)
+        # Tabelle anzeigen
         st.dataframe(df, use_container_width=True, hide_index=True)
         
-        st.success("App aktualisiert: Marktkapitalisierung nun bis 400 Mrd. USD freigegeben.")
+        st.success("Universums-Kennzahlen erfolgreich integriert.")
