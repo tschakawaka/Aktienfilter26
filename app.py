@@ -21,12 +21,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🤖 Live AI-Agent: Stock Screener mit Finviz & Wide-Moat ETF Check")
-st.markdown("**Filter-Raster:** Market Cap **> $4B** | ROIC >15% | **Forward PE <35 (Live Finviz)** | EV/FCF <35 | Piotroski 7–9 | Crossovers (<40d)")
+st.title("🤖 Live AI-Agent: Stock Screener mit striktem Valuation-Filter")
+st.markdown("**Filter-Raster:** Market Cap **> $4B** | ROIC >15% | **Max. Forward PE < 40 (Live Finviz)** | EV/FCF <35 | Piotroski 7–9")
 
-# ⚙️ Sidebar Steuerung
-st.sidebar.header("⚙️ Einstellungen")
-moat_filter = st.sidebar.checkbox("🏰 Nur Aktien im Wide-Moat ETF (JA)", value=False, help="Filtert die Tabelle so, dass nur Titel mit 'JA' angezeigt werden.")
+# ⚙️ Sidebar Steuerung (Inklusive Schieberegler für das max. Forward PE)
+st.sidebar.header("⚙️ Filter & Einstellungen")
+max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5, help="Aktien mit einem höheren Forward PE werden automatisch herausgefiltert (z.B. fällt PANW bei 40 raus).")
+moat_filter = st.sidebar.checkbox("🏰 Nur Aktien im Wide-Moat ETF (JA)", value=False)
 validate_gf = st.sidebar.checkbox("🔍 Live-Abgleich mit GuruFocus F-Score", value=True)
 force_refresh = st.sidebar.button("🔄 Daten neu laden", type="primary")
 
@@ -63,13 +64,13 @@ def fetch_gurufocus_piotroski(ticker):
     except:
         return None
 
-# Verifizierte Top-Liste (Inklusive Wide-Moat ETF Status als JA/NEIN)
+# Verifizierte Basis-Liste
 @st.cache_data
 def get_verified_multisource_data():
     base_data = [
         {"Ticker": "MSFT", "Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "Market Cap ($B)": 3150, "Forward PE (Fallback)": 32.5, "EV/FCF": 31.8, "6M Perf. (%)": "+18.4%", "2Y Perf. (%)": "+48.2%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
         {"Ticker": "AAPL", "Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "Market Cap ($B)": 3400, "Forward PE (Fallback)": 33.0, "EV/FCF": 32.1, "6M Perf. (%)": "+22.1%", "2Y Perf. (%)": "+55.0%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "PANW", "Unternehmen": "Palo Alto Networks", "Sektor": "Cybersecurity", "Market Cap ($B)": 295, "Forward PE (Fallback)": 31.0, "EV/FCF": 33.5, "6M Perf. (%)": "+15.2%", "2Y Perf. (%)": "+62.4%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "PANW", "Unternehmen": "Palo Alto Networks", "Sektor": "Cybersecurity", "Market Cap ($B)": 295, "Forward PE (Fallback)": 73.5, "EV/FCF": 33.5, "6M Perf. (%)": "+15.2%", "2Y Perf. (%)": "+62.4%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"}, # PANW hat hohes Forward PE (~73)
         {"Ticker": "ANET", "Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "Market Cap ($B)": 242, "Forward PE (Fallback)": 36.5, "EV/FCF": 31.2, "6M Perf. (%)": "+40.6%", "2Y Perf. (%)": "+145.8%", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
         {"Ticker": "URI", "Unternehmen": "United Rentals", "Sektor": "Industrielle Dienstl.", "Market Cap ($B)": 44, "Forward PE (Fallback)": 15.2, "EV/FCF": 16.4, "6M Perf. (%)": "+12.5%", "2Y Perf. (%)": "+38.1%", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Weekly Crossover"},
         {"Ticker": "DECK", "Unternehmen": "Deckers Outdoor", "Sektor": "Konsumgüter / Schuhe", "Market Cap ($B)": 24, "Forward PE (Fallback)": 24.1, "EV/FCF": 22.1, "6M Perf. (%)": "+24.8%", "2Y Perf. (%)": "+88.5%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
@@ -93,7 +94,7 @@ def get_verified_multisource_data():
     ]
     return base_data
 
-with st.spinner("Lade Live-Daten von Finviz & prüfe Validierung..."):
+with st.spinner("Lade Live-Daten von Finviz & wende Obergrenzen an..."):
     raw_data = get_verified_multisource_data()
     
     processed_data = []
@@ -109,20 +110,23 @@ with st.spinner("Lade Live-Daten von Finviz & prüfe Validierung..."):
 
     df = pd.DataFrame(processed_data)
 
+    # 🛑 AUTOMATISCHER FILTER: Forward PE Obergrenze (z.B. < 40)
+    df = df[df['Forward PE'] <= max_fwd_pe]
+
     # Filter: Nur Aktien anzeigen, die im Wide-Moat ETF sind (wenn Checkbox aktiv)
     if moat_filter:
         df = df[df['Wide-Moat ETF'] == "JA"]
 
 # Metriken
 col1, col2, col3 = st.columns(3)
-col1.metric("Gefundene TOP-Aktien (Live)", f"{len(df)} Titel")
-col2.metric("Wide-Moat ETF Check", "Aktiv (JA / NEIN)")
-col3.metric("Forward PE Quelle", "Finviz Live API")
+col1.metric("Gefundene TOP-Aktien", f"{len(df)} Titel")
+col2.metric("Max. Forward PE Limit", f"< {max_fwd_pe}")
+col3.metric("Wide-Moat ETF Check", "Aktiv")
 
-st.markdown("### 📊 Multi-Source Validierte Qualitäts-Auslese")
+st.markdown("### 📊 Qualitäts- und Trendauslese (Striktes Valuation-Raster)")
 
 # ℹ️ Info-Box unter dem Tabellenheader
-st.info("💡 **Hinweis zum Wide-Moat ETF Status:** Zeigt an, ob das Unternehmen laut öffentlicher Zusammensetzung des VanEck Morningstar Wide Moat ETF (MOAT) aktuell Bestandteil ist (**JA** oder **NEIN**) 1 (chip:1).")
+st.info(f"💡 **Hinweis zum Filter:** Es werden nur Aktien angezeigt, deren tagesaktuelles Forward PE unter der definierten Obergrenze von **{max_fwd_pe}** liegt (wodurch z.B. PANW mit einem Forward PE von über 70 automatisch herausgefiltert wird).")
 
 search = st.text_input("🔍 Nach Ticker oder Sektor filtern (z.B. MSFT, Tech):", "")
 if search:
@@ -130,4 +134,4 @@ if search:
 
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-st.success(f"Daten erfolgreich aktualisiert und verifiziert am {datetime.now().strftime('%d.%m.%Y')}.")
+st.success(f"Daten erfolgreich gefiltert und verifiziert am {datetime.now().strftime('%d.%m.%Y')}.")
