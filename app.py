@@ -98,24 +98,21 @@ with st.spinner("Lade Live-Daten von Finviz & prüfe Validierung..."):
     processed_data = []
     for row in raw_data:
         ticker = row['Ticker']
-        # Hole Live Forward PE von Finviz
         live_fwd_pe = get_live_finviz_forward_pe(ticker)
         
-        # Nimm den Live-Wert von Finviz, falls verfügbar, ansonsten den verifizierten Fallback
         final_fwd_pe = live_fwd_pe if live_fwd_pe else row['Forward PE (Fallback)']
         
         row['Forward PE'] = final_fwd_pe
-        del row['Forward PE (Fallback)'] # Alte Spalte aufräumen
+        del row['Forward PE (Fallback)']
         processed_data.append(row)
 
     df = pd.DataFrame(processed_data)
 
-    # Wenn der strenge Modus aktiv ist, nur Aktien anzeigen, die von beiden Quellen mit 8 oder 9 bestätigt sind
     if strict_mode:
         def passes_strict(row):
             try:
-                s1 = int(row['Agent Score'].split('/') 0 )
-                s2 = int(row['External Ref (PriceToWorth)'].split('/') 0 )
+                s1 = int(row['Agent Score'].split('/')[0])
+                s2 = int(row['External Ref (PriceToWorth)'].split('/')[0])
                 return s1 >= 8 and s2 >= 8
             except:
                 return False
