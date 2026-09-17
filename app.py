@@ -24,6 +24,11 @@ st.markdown(
 st.title("🤖 Live AI-Agent: Stock Screener mit Finviz & Multi-Source Validierung")
 st.markdown("**Filter-Raster:** Market Cap **> $4B** | ROIC >15% | **Forward PE <35 (Live Finviz)** | EV/FCF <35 | Piotroski 7–9 | Crossovers (<40d)")
 
+# ⚙️ Sidebar Steuerung (Ganz nach oben verschoben, damit strict_mode sofort bekannt ist!)
+st.sidebar.header("⚙️ Einstellungen")
+strict_mode = st.sidebar.checkbox("🔒 Nur 2-Quellen-Übereinstimmung (Score 8-9)", value=True, help="Filtert Titel heraus, bei denen die Zweitquelle (z.B. PriceToWorth/GuruFocus) abweicht.")
+force_refresh = st.sidebar.button("🔄 Daten neu laden", type="primary")
+
 # Funktion zum Abfragen des Live Forward PE direkt von Finviz
 @st.cache_data(ttl=3600)
 def get_live_finviz_forward_pe(ticker):
@@ -56,11 +61,6 @@ def fetch_gurufocus_piotroski(ticker):
         return None
     except:
         return None
-
-# Sidebar Steuerung
-st.sidebar.header("⚙️ Einstellungen")
-validate_gf = st.sidebar.checkbox("🔍 Live-Abgleich mit GuruFocus F-Score", value=True)
-force_refresh = st.sidebar.button("🔄 Daten neu laden", type="primary")
 
 # Verifizierte Top-Liste (Live Forward PE Integration)
 @st.cache_data
