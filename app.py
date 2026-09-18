@@ -25,10 +25,9 @@ st.markdown(
 st.title("🤖 Live AI-Agent: Dynamischer Finviz-Screener")
 st.markdown("**Live-Filter:** Market Cap **> $4B** | Kurs > SMA-200 | **Max. Forward PE < 40** | EV/FCF <35 | Piotroski 7–9")
 
-# ⚙️ Sidebar Steuerung
+# ⚙️ Sidebar Steuerung (JUST-Filter entfernt)
 st.sidebar.header("⚙️ Live-Screener Einstellungen")
 max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5)
-just_filter = st.sidebar.checkbox("⭐ Nur Top JUST Capital Unternehmen", value=False)
 ethical_filter = st.sidebar.checkbox("🌱 Nur Aktien im Global Ethical Values Index (JA)", value=False)
 moat_filter = st.sidebar.checkbox("🏰 Nur Aktien im Wide-Moat ETF (JA)", value=False)
 force_refresh = st.sidebar.button("🔄 Markt jetzt live scannen", type="primary")
@@ -38,7 +37,6 @@ force_refresh = st.sidebar.button("🔄 Markt jetzt live scannen", type="primary
 def fetch_live_finviz_universe():
     try:
         foverview = Overview()
-        # Finviz Serverseitige Filter für das Basis-Universum (>2B Cap, SMA200, Positives Halbjahr)
         filters_dict = {
             'Market Cap.': '+Mid-cap (over $2bln)',
             '200-Day Simple Moving Average': 'Price above SMA200',
@@ -47,7 +45,7 @@ def fetch_live_finviz_universe():
         foverview.set_filter(filters_dict=filters_dict)
         df = foverview.screener_view()
         if not df.empty and 'Ticker' in df.columns:
-            return df['Ticker'].tolist()[:50] # Begrenzung auf Top 50 für Performance
+            return df['Ticker'].tolist()[:50]
     except:
         pass
     return ["MSFT", "AAPL", "ANET", "PANW", "TT", "ETN", "RSG", "SNPS", "CDNS", "PH"]
@@ -72,39 +70,35 @@ def get_live_finviz_metrics(ticker):
     except:
         return 0, 99.0
 
-# Dynamisches Screening-Ergebnis zusammenbauen
+# Dynamisches Screening-Ergebnis zusammenbauen (ohne JUST)
 with st.spinner("Frage tagesaktuelle Live-Daten von Finviz ab und wende Filter an..."):
     tickers = fetch_live_finviz_universe()
     
     live_results = []
     
-    # Bekannte Referenz-Metadaten für unsere Qualitäts-Titel zur Anicherung der Live-Screener-Ergebnisse
     metadata_db = {
-        "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "6M Perf. (%)": "+18.4%", "2Y Perf. (%)": "+48.2%", "JUST Rank": "Top 5", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "6M Perf. (%)": "+22.1%", "2Y Perf. (%)": "+55.0%", "JUST Rank": "Top 10", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "6M Perf. (%)": "+40.6%", "2Y Perf. (%)": "+145.8%", "JUST Rank": "Top 15%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "6M Perf. (%)": "+21.4%", "2Y Perf. (%)": "+81.0%", "JUST Rank": "Industry Leader", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "6M Perf. (%)": "+26.0%", "2Y Perf. (%)": "+89.2%", "JUST Rank": "Top 5%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "SNPS": {"Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "EV/FCF": 33.2, "6M Perf. (%)": "+16.2%", "2Y Perf. (%)": "+58.0%", "JUST Rank": "Rank 340", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "CDNS": {"Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "EV/FCF": 34.0, "6M Perf. (%)": "+18.9%", "2Y Perf. (%)": "+66.4%", "JUST Rank": "Rank 315", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "RSG": {"Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "EV/FCF": 27.8, "6M Perf. (%)": "+12.1%", "2Y Perf. (%)": "+40.5%", "JUST Rank": "Top 10%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "PH": {"Unternehmen": "Parker-Hannifin", "Sektor": "Industrietechnik", "EV/FCF": 21.5, "6M Perf. (%)": "+19.0%", "2Y Perf. (%)": "+74.2%", "JUST Rank": "Rank 188", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "FAST": {"Unternehmen": "Fastenal Company", "Sektor": "Industrieller Großhandel", "EV/FCF": 28.7, "6M Perf. (%)": "+13.4%", "2Y Perf. (%)": "+45.5%", "JUST Rank": "Rank 140", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"}
+        "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "6M Perf. (%)": "+18.4%", "2Y Perf. (%)": "+48.2%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "6M Perf. (%)": "+22.1%", "2Y Perf. (%)": "+55.0%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "6M Perf. (%)": "+40.6%", "2Y Perf. (%)": "+145.8%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "6M Perf. (%)": "+21.4%", "2Y Perf. (%)": "+81.0%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "6M Perf. (%)": "+26.0%", "2Y Perf. (%)": "+89.2%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "SNPS": {"Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "EV/FCF": 33.2, "6M Perf. (%)": "+16.2%", "2Y Perf. (%)": "+58.0%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "CDNS": {"Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "EV/FCF": 34.0, "6M Perf. (%)": "+18.9%", "2Y Perf. (%)": "+66.4%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "RSG": {"Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "EV/FCF": 27.8, "6M Perf. (%)": "+12.1%", "2Y Perf. (%)": "+40.5%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "PH": {"Unternehmen": "Parker-Hannifin", "Sektor": "Industrietechnik", "EV/FCF": 21.5, "6M Perf. (%)": "+19.0%", "2Y Perf. (%)": "+74.2%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "FAST": {"Unternehmen": "Fastenal Company", "Sektor": "Industrieller Großhandel", "EV/FCF": 28.7, "6M Perf. (%)": "+13.4%", "2Y Perf. (%)": "+45.5%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"}
     }
 
     for ticker in tickers:
         mcap_b, fwd_pe = get_live_finviz_metrics(ticker)
         
-        # Filter: Market Cap > 4B und Forward PE unter der Obergrenze
         if mcap_b >= 4.0 and fwd_pe <= max_fwd_pe:
-            # Wenn das Unternehmen in unserer Metadaten-DB ist, nimm die Werte, sonst Standard-Fallback
             meta = metadata_db.get(ticker, {
                 "Unternehmen": ticker,
                 "Sektor": "Diverse",
                 "EV/FCF": 25.0,
                 "6M Perf. (%)": "+10.0%",
                 "2Y Perf. (%)": "+30.0%",
-                "JUST Rank": "Standard",
                 "Global Ethical Values": "JA",
                 "Wide-Moat ETF": "NEIN",
                 "Agent Score": "8/9",
@@ -120,7 +114,6 @@ with st.spinner("Frage tagesaktuelle Live-Daten von Finviz ab und wende Filter a
                 "EV/FCF": meta["EV/FCF"],
                 "6M Perf. (%)": meta["6M Perf. (%)"],
                 "2Y Perf. (%)": meta["2Y Perf. (%)"],
-                "JUST Rank": meta["JUST Rank"],
                 "Global Ethical Values": meta["Global Ethical Values"],
                 "Wide-Moat ETF": meta["Wide-Moat ETF"],
                 "Agent Score": meta["Agent Score"],
@@ -129,9 +122,7 @@ with st.spinner("Frage tagesaktuelle Live-Daten von Finviz ab und wende Filter a
 
     df = pd.DataFrame(live_results)
 
-    # Sidebar Filter anwenden
-    if just_filter and not df.empty:
-        df = df[df['JUST Rank'].str.contains("Top|Industry", case=False)]
+    # Sidebar Filter anwenden (ohne JUST)
     if ethical_filter and not df.empty:
         df = df[df['Global Ethical Values'] == "JA"]
     if moat_filter and not df.empty:
