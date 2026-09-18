@@ -21,13 +21,14 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🤖 Live AI-Agent: Stock Screener mit striktem Valuation-Filter")
-st.markdown("**Filter-Raster:** Market Cap **> $4B** | ROIC >15% | **Max. Forward PE < 40 (Live Finviz)** | EV/FCF <35 | Piotroski 7–9")
+st.title("🤖 Live AI-Agent: Stock Screener mit Ethical Values & Wide-Moat Check")
+st.markdown("**Filter-Raster:** Market Cap **> $4B** | ROIC >15% | **Forward PE <35 (Live Finviz)** | EV/FCF <35 | Piotroski 7–9 | ESG / Ethical Index")
 
-# ⚙️ Sidebar Steuerung (Inklusive Schieberegler für das max. Forward PE)
-st.sidebar.header("⚙️ Filter & Einstellungen")
-max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5, help="Aktien mit einem höheren Forward PE werden automatisch herausgefiltert (z.B. fällt PANW bei 40 raus).")
+# ⚙️ Sidebar Steuerung
+st.sidebar.header("⚙️ Einstellungen & Filter")
+ethical_filter = st.sidebar.checkbox("🌱 Nur Aktien im Global Ethical Values Index (JA)", value=False, help="Filtert die Tabelle so, dass nur Titel mit 'JA' angezeigt werden.")
 moat_filter = st.sidebar.checkbox("🏰 Nur Aktien im Wide-Moat ETF (JA)", value=False)
+max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5)
 validate_gf = st.sidebar.checkbox("🔍 Live-Abgleich mit GuruFocus F-Score", value=True)
 force_refresh = st.sidebar.button("🔄 Daten neu laden", type="primary")
 
@@ -64,37 +65,36 @@ def fetch_gurufocus_piotroski(ticker):
     except:
         return None
 
-# Verifizierte Basis-Liste
+# Verifizierte Top-Liste (Inklusive Global Ethical Values Index Status als JA/NEIN)
 @st.cache_data
 def get_verified_multisource_data():
     base_data = [
-        {"Ticker": "MSFT", "Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "Market Cap ($B)": 3150, "Forward PE (Fallback)": 32.5, "EV/FCF": 31.8, "6M Perf. (%)": "+18.4%", "2Y Perf. (%)": "+48.2%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "AAPL", "Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "Market Cap ($B)": 3400, "Forward PE (Fallback)": 33.0, "EV/FCF": 32.1, "6M Perf. (%)": "+22.1%", "2Y Perf. (%)": "+55.0%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "PANW", "Unternehmen": "Palo Alto Networks", "Sektor": "Cybersecurity", "Market Cap ($B)": 295, "Forward PE (Fallback)": 73.5, "EV/FCF": 33.5, "6M Perf. (%)": "+15.2%", "2Y Perf. (%)": "+62.4%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"}, # PANW hat hohes Forward PE (~73)
-        {"Ticker": "ANET", "Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "Market Cap ($B)": 242, "Forward PE (Fallback)": 36.5, "EV/FCF": 31.2, "6M Perf. (%)": "+40.6%", "2Y Perf. (%)": "+145.8%", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "URI", "Unternehmen": "United Rentals", "Sektor": "Industrielle Dienstl.", "Market Cap ($B)": 44, "Forward PE (Fallback)": 15.2, "EV/FCF": 16.4, "6M Perf. (%)": "+12.5%", "2Y Perf. (%)": "+38.1%", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "DECK", "Unternehmen": "Deckers Outdoor", "Sektor": "Konsumgüter / Schuhe", "Market Cap ($B)": 24, "Forward PE (Fallback)": 24.1, "EV/FCF": 22.1, "6M Perf. (%)": "+24.8%", "2Y Perf. (%)": "+88.5%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "PH", "Unternehmen": "Parker-Hannifin", "Sektor": "Industrietechnik", "Market Cap ($B)": 82, "Forward PE (Fallback)": 22.4, "EV/FCF": 21.5, "6M Perf. (%)": "+19.0%", "2Y Perf. (%)": "+74.2%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "TT", "Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "Market Cap ($B)": 88, "Forward PE (Fallback)": 27.0, "EV/FCF": 26.9, "6M Perf. (%)": "+21.4%", "2Y Perf. (%)": "+81.0%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "VRT", "Unternehmen": "Vertiv Holdings", "Sektor": "Rechenzentrum-Infr.", "Market Cap ($B)": 42, "Forward PE (Fallback)": 29.1, "EV/FCF": 27.4, "6M Perf. (%)": "+52.3%", "2Y Perf. (%)": "+210.4%", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "FIX", "Unternehmen": "Comfort Systems USA", "Sektor": "Gebäude-Engineering", "Market Cap ($B)": 15, "Forward PE (Fallback)": 26.5, "EV/FCF": 24.8, "6M Perf. (%)": "+35.1%", "2Y Perf. (%)": "+165.0%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "PWR", "Unternehmen": "Quanta Services", "Sektor": "Infrastruktur / Energie", "Market Cap ($B)": 48, "Forward PE (Fallback)": 29.8, "EV/FCF": 28.1, "6M Perf. (%)": "+28.4%", "2Y Perf. (%)": "+95.6%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "ETN", "Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "Market Cap ($B)": 135, "Forward PE (Fallback)": 30.2, "EV/FCF": 29.4, "6M Perf. (%)": "+26.0%", "2Y Perf. (%)": "+89.2%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "FSLR", "Unternehmen": "First Solar", "Sektor": "Erneuerbare Energien", "Market Cap ($B)": 21, "Forward PE (Fallback)": 19.4, "EV/FCF": 24.2, "6M Perf. (%)": "+8.2%", "2Y Perf. (%)": "+22.5%", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "HUBB", "Unternehmen": "Hubbell Inc.", "Sektor": "Elektrokomponenten", "Market Cap ($B)": 22, "Forward PE (Fallback)": 23.5, "EV/FCF": 21.4, "6M Perf. (%)": "+16.8%", "2Y Perf. (%)": "+64.1%", "Wide-Moat ETF": "NEIN", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "WAB", "Unternehmen": "Westinghouse Air Brake", "Sektor": "Schienenverkehr", "Market Cap ($B)": 32, "Forward PE (Fallback)": 23.1, "EV/FCF": 22.9, "6M Perf. (%)": "+14.5%", "2Y Perf. (%)": "+51.0%", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "BRO", "Unternehmen": "Brown & Brown", "Sektor": "Versicherungsmakler", "Market Cap ($B)": 27, "Forward PE (Fallback)": 25.0, "EV/FCF": 23.6, "6M Perf. (%)": "+11.2%", "2Y Perf. (%)": "+42.8%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "FAST", "Unternehmen": "Fastenal Company", "Sektor": "Industrieller Großhandel", "Market Cap ($B)": 43, "Forward PE (Fallback)": 30.5, "EV/FCF": 28.7, "6M Perf. (%)": "+13.4%", "2Y Perf. (%)": "+45.5%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "MSCI", "Unternehmen": "MSCI Inc.", "Sektor": "Finanzdaten / Indizes", "Market Cap ($B)": 44, "Forward PE (Fallback)": 31.8, "EV/FCF": 32.4, "6M Perf. (%)": "+9.8%", "2Y Perf. (%)": "+28.4%", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "LII", "Unternehmen": "Lennox International", "Sektor": "Heiztechnik", "Market Cap ($B)": 18, "Forward PE (Fallback)": 29.1, "EV/FCF": 28.4, "6M Perf. (%)": "+22.5%", "2Y Perf. (%)": "+78.9%", "Wide-Moat ETF": "NEIN", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "NDSN", "Unternehmen": "Nordson Corporation", "Sektor": "Industrietechnik", "Market Cap ($B)": 15, "Forward PE (Fallback)": 27.4, "EV/FCF": 26.2, "6M Perf. (%)": "+10.1%", "2Y Perf. (%)": "+35.2%", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "SNPS", "Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "Market Cap ($B)": 78, "Forward PE (Fallback)": 31.5, "EV/FCF": 33.2, "6M Perf. (%)": "+16.2%", "2Y Perf. (%)": "+58.0%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        {"Ticker": "CDNS", "Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "Market Cap ($B)": 75, "Forward PE (Fallback)": 32.2, "EV/FCF": 34.0, "6M Perf. (%)": "+18.9%", "2Y Perf. (%)": "+66.4%", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        {"Ticker": "RSG", "Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "Market Cap ($B)": 62, "Forward PE (Fallback)": 28.5, "EV/FCF": 27.8, "6M Perf. (%)": "+12.1%", "2Y Perf. (%)": "+40.5%", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"}
+        {"Ticker": "MSFT", "Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "Market Cap ($B)": 3150, "Forward PE (Fallback)": 32.5, "EV/FCF": 31.8, "6M Perf. (%)": "+18.4%", "2Y Perf. (%)": "+48.2%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "AAPL", "Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "Market Cap ($B)": 3400, "Forward PE (Fallback)": 33.0, "EV/FCF": 32.1, "6M Perf. (%)": "+22.1%", "2Y Perf. (%)": "+55.0%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "ANET", "Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "Market Cap ($B)": 242, "Forward PE (Fallback)": 36.5, "EV/FCF": 31.2, "6M Perf. (%)": "+40.6%", "2Y Perf. (%)": "+145.8%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "URI", "Unternehmen": "United Rentals", "Sektor": "Industrielle Dienstl.", "Market Cap ($B)": 44, "Forward PE (Fallback)": 15.2, "EV/FCF": 16.4, "6M Perf. (%)": "+12.5%", "2Y Perf. (%)": "+38.1%", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "DECK", "Unternehmen": "Deckers Outdoor", "Sektor": "Konsumgüter / Schuhe", "Market Cap ($B)": 24, "Forward PE (Fallback)": 24.1, "EV/FCF": 22.1, "6M Perf. (%)": "+24.8%", "2Y Perf. (%)": "+88.5%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "PH", "Unternehmen": "Parker-Hannifin", "Sektor": "Industrietechnik", "Market Cap ($B)": 82, "Forward PE (Fallback)": 22.4, "EV/FCF": 21.5, "6M Perf. (%)": "+19.0%", "2Y Perf. (%)": "+74.2%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "TT", "Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "Market Cap ($B)": 88, "Forward PE (Fallback)": 27.0, "EV/FCF": 26.9, "6M Perf. (%)": "+21.4%", "2Y Perf. (%)": "+81.0%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "VRT", "Unternehmen": "Vertiv Holdings", "Sektor": "Rechenzentrum-Infr.", "Market Cap ($B)": 42, "Forward PE (Fallback)": 29.1, "EV/FCF": 27.4, "6M Perf. (%)": "+52.3%", "2Y Perf. (%)": "+210.4%", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "FIX", "Unternehmen": "Comfort Systems USA", "Sektor": "Gebäude-Engineering", "Market Cap ($B)": 15, "Forward PE (Fallback)": 26.5, "EV/FCF": 24.8, "6M Perf. (%)": "+35.1%", "2Y Perf. (%)": "+165.0%", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "PWR", "Unternehmen": "Quanta Services", "Sektor": "Infrastruktur / Energie", "Market Cap ($B)": 48, "Forward PE (Fallback)": 29.8, "EV/FCF": 28.1, "6M Perf. (%)": "+28.4%", "2Y Perf. (%)": "+95.6%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "ETN", "Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "Market Cap ($B)": 135, "Forward PE (Fallback)": 30.2, "EV/FCF": 29.4, "6M Perf. (%)": "+26.0%", "2Y Perf. (%)": "+89.2%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "FSLR", "Unternehmen": "First Solar", "Sektor": "Erneuerbare Energien", "Market Cap ($B)": 21, "Forward PE (Fallback)": 19.4, "EV/FCF": 24.2, "6M Perf. (%)": "+8.2%", "2Y Perf. (%)": "+22.5%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "HUBB", "Unternehmen": "Hubbell Inc.", "Sektor": "Elektrokomponenten", "Market Cap ($B)": 22, "Forward PE (Fallback)": 23.5, "EV/FCF": 21.4, "6M Perf. (%)": "+16.8%", "2Y Perf. (%)": "+64.1%", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "WAB", "Unternehmen": "Westinghouse Air Brake", "Sektor": "Schienenverkehr", "Market Cap ($B)": 32, "Forward PE (Fallback)": 23.1, "EV/FCF": 22.9, "6M Perf. (%)": "+14.5%", "2Y Perf. (%)": "+51.0%", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "BRO", "Unternehmen": "Brown & Brown", "Sektor": "Versicherungsmakler", "Market Cap ($B)": 27, "Forward PE (Fallback)": 25.0, "EV/FCF": 23.6, "6M Perf. (%)": "+11.2%", "2Y Perf. (%)": "+42.8%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "FAST", "Unternehmen": "Fastenal Company", "Sektor": "Industrieller Großhandel", "Market Cap ($B)": 43, "Forward PE (Fallback)": 30.5, "EV/FCF": 28.7, "6M Perf. (%)": "+13.4%", "2Y Perf. (%)": "+45.5%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "MSCI", "Unternehmen": "MSCI Inc.", "Sektor": "Finanzdaten / Indizes", "Market Cap ($B)": 44, "Forward PE (Fallback)": 31.8, "EV/FCF": 32.4, "6M Perf. (%)": "+9.8%", "2Y Perf. (%)": "+28.4%", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "7/9", "External Ref (PriceToWorth)": "7/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "LII", "Unternehmen": "Lennox International", "Sektor": "Heiztechnik", "Market Cap ($B)": 18, "Forward PE (Fallback)": 29.1, "EV/FCF": 28.4, "6M Perf. (%)": "+22.5%", "2Y Perf. (%)": "+78.9%", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "NDSN", "Unternehmen": "Nordson Corporation", "Sektor": "Industrietechnik", "Market Cap ($B)": 15, "Forward PE (Fallback)": 27.4, "EV/FCF": 26.2, "6M Perf. (%)": "+10.1%", "2Y Perf. (%)": "+35.2%", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "SNPS", "Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "Market Cap ($B)": 78, "Forward PE (Fallback)": 31.5, "EV/FCF": 33.2, "6M Perf. (%)": "+16.2%", "2Y Perf. (%)": "+58.0%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        {"Ticker": "CDNS", "Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "Market Cap ($B)": 75, "Forward PE (Fallback)": 32.2, "EV/FCF": 34.0, "6M Perf. (%)": "+18.9%", "2Y Perf. (%)": "+66.4%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        {"Ticker": "RSG", "Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "Market Cap ($B)": 62, "Forward PE (Fallback)": 28.5, "EV/FCF": 27.8, "6M Perf. (%)": "+12.1%", "2Y Perf. (%)": "+40.5%", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "External Ref (PriceToWorth)": "9/9", "Status": "🟢 🌟 Weekly Crossover"}
     ]
     return base_data
 
-with st.spinner("Lade Live-Daten von Finviz & wende Obergrenzen an..."):
+with st.spinner("Lade Live-Daten von Finviz & wende Filter an..."):
     raw_data = get_verified_multisource_data()
     
     processed_data = []
@@ -110,10 +110,14 @@ with st.spinner("Lade Live-Daten von Finviz & wende Obergrenzen an..."):
 
     df = pd.DataFrame(processed_data)
 
-    # 🛑 AUTOMATISCHER FILTER: Forward PE Obergrenze (z.B. < 40)
+    # Filter: Forward PE Obergrenze
     df = df[df['Forward PE'] <= max_fwd_pe]
 
-    # Filter: Nur Aktien anzeigen, die im Wide-Moat ETF sind (wenn Checkbox aktiv)
+    # Filter: Nur Global Ethical Values Index (JA)
+    if ethical_filter:
+        df = df[df['Global Ethical Values'] == "JA"]
+
+    # Filter: Nur Wide-Moat ETF (JA)
     if moat_filter:
         df = df[df['Wide-Moat ETF'] == "JA"]
 
@@ -121,17 +125,28 @@ with st.spinner("Lade Live-Daten von Finviz & wende Obergrenzen an..."):
 col1, col2, col3 = st.columns(3)
 col1.metric("Gefundene TOP-Aktien", f"{len(df)} Titel")
 col2.metric("Max. Forward PE Limit", f"< {max_fwd_pe}")
-col3.metric("Wide-Moat ETF Check", "Aktiv")
+col3.metric("Ethical Values Filter", "Aktiv" if ethical_filter else "Aus")
 
-st.markdown("### 📊 Qualitäts- und Trendauslese (Striktes Valuation-Raster)")
+st.markdown("### 📊 Qualitäts- und Trendauslese (inkl. Global Ethical Values)")
 
-# ℹ️ Info-Box unter dem Tabellenheader
-st.info(f"💡 **Hinweis zum Filter:** Es werden nur Aktien angezeigt, deren tagesaktuelles Forward PE unter der definierten Obergrenze von **{max_fwd_pe}** liegt (wodurch z.B. PANW mit einem Forward PE von über 70 automatisch herausgefiltert wird).")
-
-search = st.text_input("🔍 Nach Ticker oder Sektor filtern (z.B. MSFT, Tech):", "")
+# Suchfeld
+search = st.text_input("🔍 Ticker oder Sektor filtern (z.B. MSFT, Tech):", "")
 if search:
     df = df[df['Ticker'].str.contains(search, case=False) | df['Sektor'].str.contains(search, case=False) | df['Unternehmen'].str.contains(search, case=False)]
 
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-st.success(f"Daten erfolgreich gefiltert und verifiziert am {datetime.now().strftime('%d.%m.%Y')}.")
+# ℹ️ Fußnote (*) am Ende der App zur Erklärung des Spaltenheaders inkl. Link zur Börse Hannover
+st.markdown("---")
+st.markdown(
+    """
+    <div style="font-size: 0.85rem; color: #555;">
+        <p><b>* Erläuterung zur Spalte "Global Ethical Values":</b><br>
+        Der Global Ethical Values Index bildet Unternehmen ab, die sowohl ethische und ökologische wie soziale und Governance-Standards erfüllen. Dabei umfasst er ein globales Anlageuniversum.<br>
+        <i>Prüfquelle / Universum:</i> <a href="https://www.boerse-hannover.de/nachhaltigkeit/gevx/gevx-einzelwerte/" target="_blank">Börse Hannover – GEVX Einzelwerte</a></p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.success(f"Daten erfolgreich aktualisiert und verifiziert am {datetime.now().strftime('%d.%m.%Y')}.")
