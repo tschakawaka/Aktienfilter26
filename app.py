@@ -51,7 +51,7 @@ def get_safe_live_performance(ticker_symbol):
         perf_6m = ((current_price - p_6m) / p_6m) * 100
         
         # 2 Jahre (Erster verfügbarer Wert im Zeitraum)
-        p_2y = closes.iloc 0 
+        p_2y = closes.iloc[0]
         perf_2y = ((current_price - p_2y) / p_2y) * 100
         
         # Formatierung mit Vorzeichen
@@ -123,7 +123,6 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
         mcap_b, fwd_pe = get_live_finviz_metrics(ticker)
         
         if mcap_b >= 4.0 and fwd_pe <= max_fwd_pe:
-            # Robuste Performance-Ermittlung ohne NaN-Risiko
             perf_6m, perf_2y = get_safe_live_performance(ticker)
             
             meta = metadata_db.get(ticker, {
