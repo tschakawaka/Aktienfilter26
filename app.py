@@ -38,31 +38,27 @@ force_refresh = st.sidebar.button("🔄 Markt jetzt live scannen", type="primary
 def get_safe_live_performance(ticker_symbol):
     try:
         stock = yf.Ticker(ticker_symbol)
-        hist = stock.history(period="2y") # 2 Jahre laden
+        hist = stock.history(period="2y")
         if hist.empty or len(hist) < 20:
-            return "+15.0%", "+45.0%" # Stabiler Fallback
+            return "+15.0%", "+45.0%"
             
         closes = hist['Close'].dropna()
         current_price = closes.iloc[-1]
         
-        # 6 Monate (~126 Handelstage, falls kürzer, nimm den ersten verfügbaren)
         idx_6m = -126 if len(closes) >= 126 else 0
         p_6m = closes.iloc[idx_6m]
         perf_6m = ((current_price - p_6m) / p_6m) * 100
         
-        # 2 Jahre (Erster verfügbarer Wert im Zeitraum)
         p_2y = closes.iloc[0]
         perf_2y = ((current_price - p_2y) / p_2y) * 100
         
-        # Formatierung mit Vorzeichen
         str_6m = f"{'+' if perf_6m > 0 else ''}{perf_6m:.1f}%"
         str_2y = f"{'+' if perf_2y > 0 else ''}{perf_2y:.1f}%"
         
         return str_6m, str_2y
     except:
-        return "+12.5%", "+38.0%" # Absichernder Fallback bei API-Fehlern
+        return "+12.5%", "+38.0%"
 
-# 1. Dynamischer Live-Abruf direkt von Finviz
 @st.cache_data(ttl=1800) 
 def fetch_live_finviz_universe():
     try:
@@ -80,7 +76,6 @@ def fetch_live_finviz_universe():
         pass
     return ["MSFT", "AAPL", "ANET", "TT", "ETN", "RSG", "SNPS", "CDNS", "PH", "FAST"]
 
-# Funktion zur Ermittlung des Live Forward PE von Finviz
 @st.cache_data(ttl=3600)
 def get_live_finviz_metrics(ticker):
     try:
@@ -100,15 +95,15 @@ def get_live_finviz_metrics(ticker):
     except:
         return 0, 99.0
 
-# Dynamisches Screening-Ergebnis zusammenbauen
 with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..."):
     tickers = fetch_live_finviz_universe()
     
     live_results = []
     
+    # Korrigierte Metadaten-Basis (Microsoft & Apple sind laut GEVX-Liste der Börse Hannover NICHT enthalten -> NEIN)
     metadata_db = {
-        "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
         "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
@@ -129,7 +124,7 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
                 "Unternehmen": ticker,
                 "Sektor": "Diverse / Industrials",
                 "EV/FCF": 25.0,
-                "Global Ethical Values": "JA",
+                "Global Ethical Values": "NEIN",
                 "Wide-Moat ETF": "NEIN",
                 "Agent Score": "8/9",
                 "Status": "🟢 🌟 Trend Active"
@@ -152,13 +147,11 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
 
     df = pd.DataFrame(live_results)
 
-    # Sidebar Filter anwenden
     if ethical_filter and not df.empty:
         df = df[df['Global Ethical Values'] == "JA"]
     if moat_filter and not df.empty:
         df = df[df['Wide-Moat ETF'] == "JA"]
 
-# Metriken oben
 col1, col2, col3 = st.columns(3)
 col1.metric("Live Gefundene Aktien", f"{len(df)} Titel")
 col2.metric("Performance-Modus", "Robust & Abgesichert")
@@ -175,7 +168,6 @@ if not df.empty:
 else:
     st.warning("Keine Aktien gefunden, die exakt allen Live-Filtern entsprechen. Versuche das Forward-PE-Limit in der Sidebar anzupassen.")
 
-# Fußnote
 st.markdown("---")
 st.markdown(
     """
@@ -188,4 +180,4 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.success(f"Live-Screening mit robuster Performance erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
+st.success(f"Live-Screening mit korrigierten GEVX-Zuordnungen erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
