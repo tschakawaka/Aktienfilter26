@@ -23,15 +23,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🤖 Live AI-Agent: Dynamischer Finviz-Screener mit robuster Performance")
-st.markdown("**Live-Filter:** Market Cap **> $4B** | Kurs > SMA-200 | **Max. Forward PE < 40** | EV/FCF <35 | Piotroski 7–9")
+st.title("🤖 Live AI-Agent: Stock Screener mit Glassdoor 100, Ethical & Moat Check")
+st.markdown("**Filter-Raster:** Market Cap **> $4B** | Kurs > SMA-200 | **Max. Forward PE < 40** | EV/FCF <35 | Piotroski 7–9 | Glassdoor 2026")
 
 # ⚙️ Sidebar Steuerung
-st.sidebar.header("⚙️ Live-Screener Einstellungen")
-max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5)
+st.sidebar.header("⚙️ Einstellungen & Filter")
+glassdoor_filter = st.sidebar.checkbox("🏢 Nur Glassdoor 100 Unternehmen (JA)", value=False, help="Filtert die Tabelle so, dass nur Top-Arbeitgeber der Glassdoor 2026 Liste angezeigt werden.")
 ethical_filter = st.sidebar.checkbox("🌱 Nur Aktien im Global Ethical Values Index (JA)", value=False)
 moat_filter = st.sidebar.checkbox("🏰 Nur Aktien im Wide-Moat ETF (JA)", value=False)
-force_refresh = st.sidebar.button("🔄 Markt jetzt live scannen", type="primary")
+max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5)
+force_refresh = st.sidebar.button("🔄 Daten neu laden", type="primary")
 
 # Robuste Live-Performance-Berechnung mit Fallback gegen 'nan%'
 @st.cache_data(ttl=3600)
@@ -100,18 +101,18 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
     
     live_results = []
     
-    # Korrigierte Metadaten-Basis (Microsoft & Apple sind laut GEVX-Liste der Börse Hannover NICHT enthalten -> NEIN)
+    # Metadaten-Basis (Inklusive Glassdoor 100 Status für 2026)
     metadata_db = {
-        "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "SNPS": {"Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "EV/FCF": 33.2, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "CDNS": {"Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "EV/FCF": 34.0, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "RSG": {"Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "EV/FCF": 27.8, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "PH": {"Unternehmen": "Parker-Hannifin", "Sektor": "Industrietechnik", "EV/FCF": 21.5, "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "FAST": {"Unternehmen": "Fastenal Company", "Sektor": "Industrieller Großhandel", "EV/FCF": 28.7, "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"}
+        "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "SNPS": {"Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "EV/FCF": 33.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "CDNS": {"Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "EV/FCF": 34.0, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "RSG": {"Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "EV/FCF": 27.8, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "PH": {"Unternehmen": "Parker-Hannifin", "Sektor": "Industrietechnik", "EV/FCF": 21.5, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "FAST": {"Unternehmen": "Fastenal Company", "Sektor": "Industrieller Großhandel", "EV/FCF": 28.7, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"}
     }
 
     for ticker in tickers:
@@ -124,6 +125,7 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
                 "Unternehmen": ticker,
                 "Sektor": "Diverse / Industrials",
                 "EV/FCF": 25.0,
+                "Glassdoor 100": "NEIN",
                 "Global Ethical Values": "NEIN",
                 "Wide-Moat ETF": "NEIN",
                 "Agent Score": "8/9",
@@ -139,6 +141,7 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
                 "EV/FCF": meta["EV/FCF"],
                 "6M Perf. (%)": perf_6m,
                 "2Y Perf. (%)": perf_2y,
+                "Glassdoor 100": meta["Glassdoor 100"],
                 "Global Ethical Values": meta["Global Ethical Values"],
                 "Wide-Moat ETF": meta["Wide-Moat ETF"],
                 "Agent Score": meta["Agent Score"],
@@ -147,17 +150,21 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
 
     df = pd.DataFrame(live_results)
 
+    # Sidebar Filter anwenden
+    if glassdoor_filter and not df.empty:
+        df = df[df['Glassdoor 100'] == "JA"]
     if ethical_filter and not df.empty:
         df = df[df['Global Ethical Values'] == "JA"]
     if moat_filter and not df.empty:
         df = df[df['Wide-Moat ETF'] == "JA"]
 
+# Metriken oben
 col1, col2, col3 = st.columns(3)
 col1.metric("Live Gefundene Aktien", f"{len(df)} Titel")
-col2.metric("Performance-Modus", "Robust & Abgesichert")
+col2.metric("Glassdoor 100 Filter", "Aktiv" if glassdoor_filter else "Aus")
 col3.metric("Max. Forward PE", f"< {max_fwd_pe}")
 
-st.markdown("### 📊 Dynamische Finviz-Marktauslese mit robuster Performance")
+st.markdown("### 📊 Dynamische Finviz-Marktauslese mit Glassdoor 100 Status")
 
 search = st.text_input("🔍 Nach Ticker oder Sektor filtern (z.B. MSFT, Tech):", "")
 if search and not df.empty:
@@ -166,18 +173,19 @@ if search and not df.empty:
 if not df.empty:
     st.dataframe(df, use_container_width=True, hide_index=True)
 else:
-    st.warning("Keine Aktien gefunden, die exakt allen Live-Filtern entsprechen. Versuche das Forward-PE-Limit in der Sidebar anzupassen.")
+    st.warning("Keine Aktien gefunden, die exakt allen Live-Filtern entsprechen. Versuche das Forward-PE-Limit oder die Filter in der Sidebar anzupassen.")
 
+# Fußnote
 st.markdown("---")
 st.markdown(
     """
     <div style="font-size: 0.85rem; color: #555;">
-        <p><b>* Erläuterung zur Spalte "Global Ethical Values":</b><br>
-        Der Global Ethical Values Index bildet Unternehmen ab, die ethische, ökologische, soziale und Governance-Standards erfüllen.<br>
-        <i>Prüfquelle:</i> <a href="https://www.boerse-hannover.de/nachhaltigkeit/gevx/gevx-einzelwerte/" target="_blank">Börse Hannover – GEVX Einzelwerte</a></p>
+        <p><b>* Erläuterungen zu den Nachhaltigkeits- & Arbeitgeber-Spalten:</b><br>
+        - <b>Global Ethical Values:</b> Unternehmen des GEVX-Index (Prüfquelle: <a href="https://www.boerse-hannover.de/nachhaltigkeit/gevx/gevx-einzelwerte/" target="_blank">Börse Hannover</a>).<br>
+        - <b>Glassdoor 100:</b> Auszeichnung als eines der besten Unternehmen zum Arbeiten im Jahr 2026 (Prüfquelle: <a href="https://www.glassdoor.com/Award/Best-Places-to-Work-LST_KQ0,19.htm" target="_blank">Glassdoor Best Places to Work 2026</a>).</p>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-st.success(f"Live-Screening mit korrigierten GEVX-Zuordnungen erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
+st.success(f"Live-Screening mit Glassdoor 100 erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
