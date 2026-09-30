@@ -101,13 +101,13 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
     
     live_results = []
     
-    # Metadaten-Basis (Inklusive Glassdoor 100 Status für 2026)
+    # Korrigierte Metadaten-Basis (Trane Technologies / TT ist korrekterweise auf JA für Glassdoor 100 gesetzt)
     metadata_db = {
         "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
-        "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
+        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Glassdoor 100": "JA", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "Glassdoor 100": "NEIN", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "SNPS": {"Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "EV/FCF": 33.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "CDNS": {"Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "EV/FCF": 34.0, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "RSG": {"Unternehmen": "Republic Services", "Sektor": "Entsorgung & Recycling", "EV/FCF": 27.8, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
@@ -188,4 +188,4 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.success(f"Live-Screening mit Glassdoor 100 erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
+st.success(f"Live-Screening mit korrigiertem Glassdoor-Status erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
