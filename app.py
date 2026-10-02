@@ -34,7 +34,7 @@ moat_filter = st.sidebar.checkbox("🏰 Nur Aktien im Wide-Moat ETF (JA)", value
 max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5)
 force_refresh = st.sidebar.button("🔄 Daten neu laden", type="primary")
 
-# Robuste Live-Performance-Berechnung mit Fallback gegen 'nan%'
+# Robuste Live-Performance-Berechnung mit korrektem Syntax-Index [0]
 @st.cache_data(ttl=3600)
 def get_safe_live_performance(ticker_symbol):
     try:
@@ -50,7 +50,7 @@ def get_safe_live_performance(ticker_symbol):
         p_6m = closes.iloc[idx_6m]
         perf_6m = ((current_price - p_6m) / p_6m) * 100
         
-        p_2y = closes.iloc 0 
+        p_2y = closes.iloc[0]
         perf_2y = ((current_price - p_2y) / p_2y) * 100
         
         str_6m = f"{'+' if perf_6m > 0 else ''}{perf_6m:.1f}%"
@@ -101,7 +101,6 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
     
     live_results = []
     
-    # Korrigierte Metadaten-Basis (Trane Technologies / TT ist nun korrekt auf JA gesetzt)
     metadata_db = {
         "META": {"Unternehmen": "Meta Platforms Inc.", "Sektor": "Interactive Media / Tech", "EV/FCF": 22.5, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "GOOGL": {"Unternehmen": "Alphabet Inc.", "Sektor": "Interactive Media / Tech", "EV/FCF": 24.0, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
@@ -109,7 +108,7 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
         "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Glassdoor 100": "JA", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"}, # Korrigiert auf JA
+        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Glassdoor 100": "JA", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "Glassdoor 100": "NEIN", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "SNPS": {"Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "EV/FCF": 33.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "CDNS": {"Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "EV/FCF": 34.0, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
@@ -191,4 +190,4 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.success(f"Live-Screening mit korrigiertem Trane Technologies Status erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
+st.success(f"Live-Screening mit Glassdoor 100 erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
