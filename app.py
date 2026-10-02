@@ -50,7 +50,8 @@ def get_safe_live_performance(ticker_symbol):
         p_6m = closes.iloc[idx_6m]
         perf_6m = ((current_price - p_6m) / p_6m) * 100
         
-        p_2y = closes.iloc 0 
+        # Korrigierter Syntax-Index [0]
+        p_2y = closes.iloc[0]
         perf_2y = ((current_price - p_2y) / p_2y) * 100
         
         str_6m = f"{'+' if perf_6m > 0 else ''}{perf_6m:.1f}%"
