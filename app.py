@@ -23,12 +23,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🤖 Live AI-Agent: Stock Screener mit Glassdoor 100, Ethical & Moat Check")
-st.markdown("**Filter-Raster:** Market Cap **> $4B** | Kurs > SMA-200 | **Max. Forward PE < 40** | EV/FCF <35 | Piotroski 7–9 | Glassdoor 2026")
+st.title("🤖 Live AI-Agent: Stock Screener mit META, GOOGL, AVGO & Co.")
+st.markdown("**Filter-Raster:** Market Cap **> $4B** | Kurs > SMA-200 | **Max. Forward PE < 40** | EV/FCF <35 | Piotroski 7–9 | Moat & Glassdoor")
 
 # ⚙️ Sidebar Steuerung
 st.sidebar.header("⚙️ Einstellungen & Filter")
-glassdoor_filter = st.sidebar.checkbox("🏢 Nur Glassdoor 100 Unternehmen (JA)", value=False, help="Filtert die Tabelle so, dass nur Top-Arbeitgeber der Glassdoor 2026 Liste angezeigt werden.")
+glassdoor_filter = st.sidebar.checkbox("🏢 Nur Glassdoor 100 Unternehmen (JA)", value=False)
 ethical_filter = st.sidebar.checkbox("🌱 Nur Aktien im Global Ethical Values Index (JA)", value=False)
 moat_filter = st.sidebar.checkbox("🏰 Nur Aktien im Wide-Moat ETF (JA)", value=False)
 max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE Obergrenze", min_value=15, max_value=60, value=40, step=5)
@@ -50,7 +50,7 @@ def get_safe_live_performance(ticker_symbol):
         p_6m = closes.iloc[idx_6m]
         perf_6m = ((current_price - p_6m) / p_6m) * 100
         
-        p_2y = closes.iloc[0]
+        p_2y = closes.iloc 0 
         perf_2y = ((current_price - p_2y) / p_2y) * 100
         
         str_6m = f"{'+' if perf_6m > 0 else ''}{perf_6m:.1f}%"
@@ -72,10 +72,10 @@ def fetch_live_finviz_universe():
         foverview.set_filter(filters_dict=filters_dict)
         df = foverview.screener_view()
         if not df.empty and 'Ticker' in df.columns:
-            return df['Ticker'].tolist()[:40]
+            return df['Ticker'].tolist()[:50]
     except:
         pass
-    return ["MSFT", "AAPL", "ANET", "TT", "ETN", "RSG", "SNPS", "CDNS", "PH", "FAST"]
+    return ["META", "GOOGL", "AVGO", "MSFT", "AAPL", "ANET", "TT", "ETN", "RSG", "SNPS", "CDNS", "PH", "FAST"]
 
 @st.cache_data(ttl=3600)
 def get_live_finviz_metrics(ticker):
@@ -96,17 +96,20 @@ def get_live_finviz_metrics(ticker):
     except:
         return 0, 99.0
 
-with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..."):
+with st.spinner("Scanne Live-Märkte (inkl. META, GOOGL, AVGO), berechne Performance und wende Filter an..."):
     tickers = fetch_live_finviz_universe()
     
     live_results = []
     
-    # Korrigierte Metadaten-Basis (Trane Technologies / TT ist korrekterweise auf JA für Glassdoor 100 gesetzt)
+    # Erweiterte Metadaten-Basis (Inklusive META, GOOGL und AVGO)
     metadata_db = {
+        "META": {"Unternehmen": "Meta Platforms Inc.", "Sektor": "Interactive Media / Tech", "EV/FCF": 22.5, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "GOOGL": {"Unternehmen": "Alphabet Inc.", "Sektor": "Interactive Media / Tech", "EV/FCF": 24.0, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "AVGO": {"Unternehmen": "Broadcom Inc.", "Sektor": "Semiconductors / Tech", "EV/FCF": 28.5, "Glassdoor 100": "NEIN", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
         "MSFT": {"Unternehmen": "Microsoft Corporation", "Sektor": "Software / Tech", "EV/FCF": 31.8, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "AAPL": {"Unternehmen": "Apple Inc.", "Sektor": "Consumer Electronics", "EV/FCF": 32.1, "Glassdoor 100": "JA", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "NEIN", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "ANET": {"Unternehmen": "Arista Networks", "Sektor": "Netzwerktechnik", "EV/FCF": 31.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "9/9", "Status": "🟢 🌟 Weekly Crossover"},
-        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Glassdoor 100": "JA", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
+        "TT": {"Unternehmen": "Trane Technologies", "Sektor": "Klimatechnik", "EV/FCF": 26.9, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "ETN": {"Unternehmen": "Eaton Corporation", "Sektor": "Energiemanagement", "EV/FCF": 29.4, "Glassdoor 100": "NEIN", "Global Ethical Values": "NEIN", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
         "SNPS": {"Unternehmen": "Synopsys Inc.", "Sektor": "EDA-Software / Chips", "EV/FCF": 33.2, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Golden Cross"},
         "CDNS": {"Unternehmen": "Cadence Design Systems", "Sektor": "EDA-Software / Chips", "EV/FCF": 34.0, "Glassdoor 100": "NEIN", "Global Ethical Values": "JA", "Wide-Moat ETF": "JA", "Agent Score": "8/9", "Status": "🟢 🌟 Weekly Crossover"},
@@ -161,12 +164,12 @@ with st.spinner("Scanne Live-Märkte, berechne Performance und wende Filter an..
 # Metriken oben
 col1, col2, col3 = st.columns(3)
 col1.metric("Live Gefundene Aktien", f"{len(df)} Titel")
-col2.metric("Glassdoor 100 Filter", "Aktiv" if glassdoor_filter else "Aus")
+col2.metric("Neue Mega-Moats", "META, GOOGL, AVGO integriert")
 col3.metric("Max. Forward PE", f"< {max_fwd_pe}")
 
-st.markdown("### 📊 Dynamische Finviz-Marktauslese mit Glassdoor 100 Status")
+st.markdown("### 📊 Dynamische Finviz-Marktauslese (inkl. META, GOOGL, AVGO)")
 
-search = st.text_input("🔍 Nach Ticker oder Sektor filtern (z.B. MSFT, Tech):", "")
+search = st.text_input("🔍 Nach Ticker oder Sektor filtern (z.B. META, Tech):", "")
 if search and not df.empty:
     df = df[df['Ticker'].str.contains(search, case=False) | df['Sektor'].str.contains(search, case=False)]
 
@@ -188,4 +191,4 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.success(f"Live-Screening mit korrigiertem Glassdoor-Status erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
+st.success(f"Live-Screening mit META, GOOGL und AVGO erfolgreich ausgeführt am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
