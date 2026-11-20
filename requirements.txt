@@ -1,5 +1,7 @@
 streamlit
-yfinance
 pandas
-finvizfinance
-openai
+yfinance>=0.2.50
+finvizfinance>=1.7.0
+requests
+beautifulsoup4
+lxml
