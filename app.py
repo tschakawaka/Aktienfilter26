@@ -47,12 +47,13 @@ st.sidebar.subheader("Zusatz-Filter (optional)")
 moat_filter = st.sidebar.checkbox("🏰 Nur Wide-Moat ETF (MOAT = JA)", value=False)
 glassdoor_filter = st.sidebar.checkbox("🏢 Nur Glassdoor Best Places 2026 (JA)", value=False)
 validate_gf = st.sidebar.checkbox("🔍 GuruFocus F-Score Live-Check (langsam)", value=False)
+simple_table = st.sidebar.checkbox("📋 Einfache Tabellen-Ansicht (Fallback)", value=False)
 
 if st.sidebar.button("🔄 Cache leeren & Live neu scannen", type="primary"):
     st.cache_data.clear()
     st.rerun()
 
-st.sidebar.caption(f"Installierte finvizfinance-Version: `{fv_version}`")
+st.sidebar.caption(f"Streamlit: `{st.__version__}` | finvizfinance: `{fv_version}`")
 
 
 # --- OFFIZIELLE GLASSDOOR 2026 REFERENZDATEN (U.S. Best Places to Work 2026) ---
@@ -509,11 +510,11 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
             "Ticker": ticker,
             "Unternehmen": company_name,
             "Sektor": finviz_sector or info.get("sector", "N/A"),
-            "Market Cap ($B)": round(mcap_yf_b, 1),
+            "Market Cap ($B)": round(float(mcap_yf_b), 1),
             "MCap Check": mcap_cross,
-            "Forward PE": round(final_fwd_pe, 1),
-            "EV/OCF": round(ev_ocf, 1),
-            "ROIC (%)": round(roic, 1),
+            "Forward PE": round(float(final_fwd_pe), 1),
+            "EV/OCF": round(float(ev_ocf), 1),
+            "ROIC (%)": round(float(roic), 1),
             "Umsatz (3J)": rev_label,
             "Earnings (3J)": ni_label,
             "6M Perf. (%)": f"+{perf_6m:.1f}%",
@@ -524,6 +525,19 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
         }
     except Exception:
         return None
+
+
+def prepare_display_dataframe(df_in: pd.DataFrame) -> pd.DataFrame:
+    """Bereinigt Index und Datentypen für fehlerfreies Arrow/React-Rendering."""
+    df_clean = df_in.copy().reset_index(drop=True)
+    df_clean.index = pd.RangeIndex(start=1, stop=len(df_clean) + 1, name="Nr.")
+    numeric_cols = ["Market Cap ($B)", "Forward PE", "EV/OCF", "ROIC (%)"]
+    for col in df_clean.columns:
+        if col in numeric_cols:
+            df_clean[col] = pd.to_numeric(df_clean[col], errors="coerce")
+        else:
+            df_clean[col] = df_clean[col].fillna("-").astype(str)
+    return df_clean
 
 
 # --- HAUPTPROGRAMM ---
@@ -599,7 +613,17 @@ if search and not df_final.empty:
     df_final = df_final[mask]
 
 if not df_final.empty:
-    st.dataframe(df_final, use_container_width=True, hide_index=True)
+    df_display = prepare_display_dataframe(df_final)
+    table_key = f"stock_grid_{len(df_display)}_{len(df_display.columns)}_{'_'.join(df_display.columns)}"
+
+    if simple_table:
+        st.table(df_display)
+    else:
+        try:
+            st.dataframe(df_display, width="stretch", key=table_key)
+        except TypeError:
+            st.dataframe(df_display, use_container_width=True, key=table_key)
+
     st.success(f"Live-Screening erfolgreich abgeschlossen am {datetime.now().strftime('%d.%m.%Y um %H:%M Uhr')}.")
 else:
     st.warning(
