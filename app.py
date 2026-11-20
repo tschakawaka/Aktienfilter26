@@ -1,3 +1,4 @@
+
 import re
 from datetime import datetime
 
@@ -68,7 +69,6 @@ def parse_mcap_to_billions(val) -> float:
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return 0.0
     if isinstance(val, (int, float)):
-        # Falls Dollar-Wert (> 1e6), in Mrd. umrechnen; falls Millionen (> 1e3), ebenfalls prüfen
         if val > 1e7:
             return float(val) / 1e9
         if val > 100:
@@ -77,11 +77,11 @@ def parse_mcap_to_billions(val) -> float:
     s = str(val).strip().upper().replace(",", "")
     try:
         if s.endswith("T"):
-            return float(s[:-1]) * 1000.0
+            return float(s.replace("T", "")) * 1000.0
         if s.endswith("B"):
-            return float(s[:-1])
+            return float(s.replace("B", ""))
         if s.endswith("M"):
-            return float(s[:-1]) / 1000.0
+            return float(s.replace("M", "")) / 1000.0
         num = float(s)
         return num / 1e9 if num > 1e7 else num
     except Exception:
@@ -100,7 +100,7 @@ def fetch_gevx_universe():
         names = set()
         for row in soup.find_all(["tr", "li"]):
             cells = [c.get_text(" ", strip=True) for c in row.find_all(["td", "th"])]
-            text = cells 0  if cells else row.get_text(" ", strip=True)
+            text = cells.pop(0) if cells else row.get_text(" ", strip=True)
             norm = normalize_company_name(text)
             if len(norm) >= 3:
                 names.add(norm)
@@ -148,7 +148,7 @@ def fetch_gurufocus_piotroski(ticker: str):
             return None
         soup = BeautifulSoup(resp.text, "lxml")
         text = soup.get_text(" ", strip=True)
-        match = re.search(r"Piotroski\s*F-Score\s*[:\-]?\s*([0-9])\s*/\s*9", text, re.IGNORECASE)
+        match = re.search(r"Piotroski\s*F-Score\s*[:\-]?\s*(\d)\s*/\s*9", text, re.IGNORECASE)
         if match:
             return f"{match.group(1)}/9"
         return None
@@ -159,7 +159,7 @@ def fetch_gurufocus_piotroski(ticker: str):
 @st.cache_data(ttl=1800)
 def fetch_finviz_prefiltered(limit: int):
     """
-    Holt dynamisch alle US-Aktien (exkl. Fonds) von Finviz, die die Basisfilter erfüllen:
+    Holt dynamisch US-Aktien (exkl. Fonds) von Finviz, die die Basisfilter erfüllen:
     - Market Cap > $2B (exakte >= $4B Prüfung folgt)
     - ROI > 15%
     - Positives 5J Umsatz- und Gewinnwachstum
@@ -169,11 +169,14 @@ def fetch_finviz_prefiltered(limit: int):
     finviz_url = (
         "https://finviz.com/screener.ashx?v=111"
         "&f=cap_midover,fa_roi_o15,fa_sales5years_pos,fa_eps5years_pos,ta_sma200_pa,ta_perf_26wup,ind_stocksonly"
-        "&o=-marketcap"
     )
     try:
         fscreen = screener.from_url(finviz_url)
-        df = fscreen.screener_view(limit=limit, verbose=0)
+        orders = fscreen.get_orders()
+        if "Market Cap." in orders:
+            df = fscreen.screener_view(order="Market Cap.", ascend=False, limit=limit, verbose=0)
+        else:
+            df = fscreen.screener_view(limit=limit, verbose=0)
         if df is None or df.empty:
             return pd.DataFrame(), None
         return df, None
@@ -182,9 +185,12 @@ def fetch_finviz_prefiltered(limit: int):
 
 
 def get_row_val(df: pd.DataFrame, keys: list, col_idx: int):
+    if col_idx >= len(df.columns):
+        return None
+    col_name = df.columns.tolist().pop(col_idx)
     for k in keys:
-        if k in df.columns or k in df.index:
-            val = df.loc[k].iloc[col_idx]
+        if k in df.index:
+            val = df.at[k, col_name]
             if pd.notna(val):
                 return float(val)
     return None
@@ -194,7 +200,7 @@ def calculate_piotroski_9(fin: pd.DataFrame, bs: pd.DataFrame, cf: pd.DataFrame)
     """Berechnet alle 9 Punkte des Piotroski F-Scores aus den Jahresberichten."""
     if fin.empty or bs.empty or cf.empty:
         return None
-    if fin.shape 1  < 2 or bs.shape 1  < 2 or cf.shape 1  < 2:
+    if len(fin.columns) < 2 or len(bs.columns) < 2 or len(cf.columns) < 2:
         return None
 
     score = 0
@@ -283,7 +289,7 @@ def calculate_roic(fin: pd.DataFrame, bs: pd.DataFrame):
 def calculate_3y_cagr_and_trend(df_stmt: pd.DataFrame, row_keys: list):
     """Berechnet die echte 3-Jahres-CAGR (p.a.) und prüft auf durchgängiges Wachstum."""
     vals = []
-    for idx in range(min(4, df_stmt.shape 1 )):
+    for idx in range(min(4, len(df_stmt.columns))):
         v = get_row_val(df_stmt, row_keys, idx)
         if v is None:
             return None, None
@@ -292,8 +298,10 @@ def calculate_3y_cagr_and_trend(df_stmt: pd.DataFrame, row_keys: list):
     if len(vals) < 4:
         return None, None
 
-    # vals 0  = neuestes Jahr, vals 3  = vor 3 Jahren
-    v_now, v_1, v_2, v_3y = vals 0 , vals 1 , vals 2 , vals 3 
+    v_now = vals.pop(0)
+    v_1 = vals.pop(0)
+    v_2 = vals.pop(0)
+    v_3y = vals.pop(0)
     if v_3y <= 0 or v_now <= 0:
         return None, None
 
@@ -331,23 +339,23 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
         if len(closes) < 220:
             return None
 
-        curr_price = float(closes.iloc[-1])
+        curr_price = float(closes.tail(1).item())
         sma_50 = closes.rolling(window=50).mean()
         sma_200 = closes.rolling(window=200).mean()
 
-        curr_sma50 = float(sma_50.iloc[-1])
-        curr_sma200 = float(sma_200.iloc[-1])
+        curr_sma50 = float(sma_50.tail(1).item())
+        curr_sma200 = float(sma_200.tail(1).item())
 
         if pd.isna(curr_sma200) or curr_price <= curr_sma200:
             return None
 
         # 6M Performance (> 0%) & 2Y Performance
-        p_6m = float(closes.iloc[-126]) if len(closes) >= 126 else float(closes.iloc 0 )
+        p_6m = float(closes.tail(126).head(1).item())
         perf_6m = ((curr_price - p_6m) / p_6m) * 100.0
         if perf_6m <= 0:
             return None
 
-        p_2y = float(closes.iloc[-504]) if len(closes) >= 504 else float(closes.iloc 0 )
+        p_2y = float(closes.tail(504).head(1).item())
         perf_2y = ((curr_price - p_2y) / p_2y) * 100.0
 
         # RSI 14
@@ -355,10 +363,10 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
         gain = delta.clip(lower=0).rolling(window=14).mean()
         loss = -delta.clip(upper=0).rolling(window=14).mean()
         rs = gain / loss.replace(0, 1e-9)
-        rsi = float((100.0 - (100.0 / (1.0 + rs))).iloc[-1])
+        rsi = float((100.0 - (100.0 / (1.0 + rs))).tail(1).item())
 
         # Golden Cross in den letzten 40 Handelstagen
-        diff_daily = (sma_50 - sma_200).iloc[-40:]
+        diff_daily = (sma_50 - sma_200).tail(40)
         gc_40d = bool(((diff_daily.shift(1) <= 0) & (diff_daily > 0)).any())
 
         # Weekly SMA 15 / 30 Check
@@ -368,9 +376,9 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
         if len(weekly_closes) >= 35:
             w_sma15 = weekly_closes.rolling(window=15).mean()
             w_sma30 = weekly_closes.rolling(window=30).mean()
-            weekly_bullish = bool(w_sma15.iloc[-1] > w_sma30.iloc[-1])
+            weekly_bullish = bool(w_sma15.tail(1).item() > w_sma30.tail(1).item())
             w_diff = w_sma15 - w_sma30
-            weekly_cross = bool(((w_diff.shift(1) <= 0) & (w_diff > 0)).iloc[-10:].any())
+            weekly_cross = bool(((w_diff.shift(1) <= 0) & (w_diff > 0)).tail(10).any())
 
         is_bullish_chart = (curr_price > curr_sma50 > curr_sma200) and (50.0 <= rsi <= 72.0)
 
@@ -452,9 +460,9 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
         elif weekly_bullish:
             signals.append("W-SMA 15>30")
         if is_bullish_chart:
-            status_text = "🟢 [BULLISCH] " + (" | ".join(signals) if signals else f"RSI {rsi:.0f}")
+            status_text = "🟢 BULLISCH: " + (" | ".join(signals) if signals else f"RSI {rsi:.0f}")
         else:
-            status_text = "⚪ [ÜBER SMA200] " + (" | ".join(signals) if signals else f"RSI {rsi:.0f}")
+            status_text = "⚪ ÜBER SMA200: " + (" | ".join(signals) if signals else f"RSI {rsi:.0f}")
 
         company_name = finviz_company or info.get("shortName", ticker)
         return {
