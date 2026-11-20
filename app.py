@@ -28,7 +28,7 @@ st.markdown(
 st.title("🤖 Live AI-Agent: Reiner Echtzeit-Screener (ohne Anker-Liste)")
 st.markdown(
     "**Harte Filter:** Market Cap **> $4B** | 6M-Perf > 0% | 3J-Umsatz- & Gewinn-CAGR **> 5% p.a.** | "
-    "**ROIC > 15%** | **FCF > 0** | **EV/FCF < 35** | **Forward PE < Limit** | **Kurs > SMA-200** | **Piotroski ≥ 7**"
+    "**ROIC > 15%** | **OCF > 0** | **EV/OCF < 35** | **Forward PE < Limit** | **Kurs > SMA-200** | **Piotroski ≥ 7**"
 )
 
 try:
@@ -45,7 +45,6 @@ scan_limit = st.sidebar.slider("🔎 Max. Finviz-Vorkandidaten prüfen", min_val
 st.sidebar.markdown("---")
 st.sidebar.subheader("Zusatz-Filter (optional)")
 moat_filter = st.sidebar.checkbox("🏰 Nur Wide-Moat ETF (MOAT = JA)", value=False)
-ethical_filter = st.sidebar.checkbox("🌱 Nur Global Ethical Values (GEVX = JA)", value=False)
 glassdoor_filter = st.sidebar.checkbox("🏢 Nur Glassdoor Best Places 2026 (JA)", value=False)
 validate_gf = st.sidebar.checkbox("🔍 GuruFocus F-Score Live-Check (langsam)", value=False)
 
@@ -129,27 +128,6 @@ def parse_mcap_to_billions(val) -> float:
         return num / 1e9 if num > 1e7 else num
     except Exception:
         return 0.0
-
-
-@st.cache_data(ttl=86400)
-def fetch_gevx_universe():
-    """Lädt tagesaktuell die Einzelwerte des Global Ethical Values Index (Börse Hannover)."""
-    url = "https://www.boerse-hannover.de/nachhaltigkeit/gevx/gevx-einzelwerte/"
-    try:
-        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        if resp.status_code != 200:
-            return set(), f"HTTP {resp.status_code}"
-        soup = BeautifulSoup(resp.text, "lxml")
-        names = set()
-        for row in soup.find_all(["tr", "li"]):
-            cells = [c.get_text(" ", strip=True) for c in row.find_all(["td", "th"])]
-            text = cells.pop(0) if cells else row.get_text(" ", strip=True)
-            norm = normalize_company_name(text)
-            if len(norm) >= 3:
-                names.add(norm)
-        return names, f"Geladen ({len(names)} Einträge)"
-    except Exception as e:
-        return set(), f"Fehler ({e})"
 
 
 @st.cache_data(ttl=86400)
@@ -265,7 +243,11 @@ def calculate_piotroski_9(fin: pd.DataFrame, bs: pd.DataFrame, cf: pd.DataFrame)
     ni_0 = get_row_val(fin, ["Net Income", "Net Income Common Stockholders"], 0)
     ta_0 = get_row_val(bs, ["Total Assets"], 0)
     ta_1 = get_row_val(bs, ["Total Assets"], 1)
-    cfo_0 = get_row_val(cf, ["Operating Cash Flow", "Total Cash From Operating Activities"], 0)
+    cfo_0 = get_row_val(
+        cf,
+        ["Operating Cash Flow", "Cash Flow From Continuing Operating Activities", "Total Cash From Operating Activities"],
+        0,
+    )
 
     if None in (ni_0, ta_0, ta_1, cfo_0) or ta_0 == 0 or ta_1 == 0:
         return None
@@ -451,18 +433,20 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
         bs = bs.sort_index(axis=1, ascending=False)
         cf = cf.sort_index(axis=1, ascending=False)
 
-        # 5. Free Cash Flow (> 0) & EV/FCF (< 35)
-        fcf = get_row_val(cf, ["Free Cash Flow"], 0)
-        if fcf is None:
-            cfo = get_row_val(cf, ["Operating Cash Flow", "Total Cash From Operating Activities"], 0)
-            capex = get_row_val(cf, ["Capital Expenditure"], 0)
-            if cfo is not None and capex is not None:
-                fcf = cfo - abs(capex)
+        # 5. Operativer Cash Flow (OCF > 0) & EV/OCF (< 35)
+        ocf = get_row_val(
+            cf,
+            ["Operating Cash Flow", "Cash Flow From Continuing Operating Activities", "Total Cash From Operating Activities"],
+            0,
+        )
+        if ocf is None:
+            ocf = info.get("operatingCashflow")
+
         ev = info.get("enterpriseValue")
-        if fcf is None or fcf <= 0 or not ev or ev <= 0:
+        if ocf is None or ocf <= 0 or not ev or ev <= 0:
             return None
-        ev_fcf = ev / fcf
-        if ev_fcf >= 35.0:
+        ev_ocf = ev / ocf
+        if ev_ocf >= 35.0:
             return None
 
         # 6. 3-Jahres Umsatz- & Gewinnwachstum (> 5% p.a.)
@@ -528,7 +512,7 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
             "Market Cap ($B)": round(mcap_yf_b, 1),
             "MCap Check": mcap_cross,
             "Forward PE": round(final_fwd_pe, 1),
-            "EV/FCF": round(ev_fcf, 1),
+            "EV/OCF": round(ev_ocf, 1),
             "ROIC (%)": round(roic, 1),
             "Umsatz (3J)": rev_label,
             "Earnings (3J)": ni_label,
@@ -544,8 +528,7 @@ def evaluate_candidate(ticker: str, finviz_mcap_b: float, finviz_company: str, f
 
 # --- HAUPTPROGRAMM ---
 
-with st.spinner("1/3 Lade Vergleichs-Indizes (Börse Hannover GEVX & Glassdoor 2026)..."):
-    gevx_names, gevx_status = fetch_gevx_universe()
+with st.spinner("1/3 Lade Glassdoor 2026 Vergleichsdaten..."):
     gd_names, gd_status = fetch_glassdoor_universe()
 
 with st.spinner(f"2/3 Frage Finviz Live-Screener ab (max. {scan_limit} Top-Kandidaten nach Market Cap)..."):
@@ -560,7 +543,7 @@ if fv_error or df_finviz.empty:
 
 st.caption(
     f"Finviz-Vorfilter lieferte **{len(df_finviz)}** US-Kandidaten (> $2B, ROI > 15%, Kurs > SMA-200, 6M > 0%). "
-    "Prüfe nun streng auf Market Cap ≥ $4B, 3J-CAGR > 5%, ROIC > 15%, EV/FCF < 35, Forward PE und Piotroski F-Score..."
+    "Prüfe nun streng auf Market Cap ≥ $4B, 3J-CAGR > 5%, ROIC > 15%, OCF > 0, EV/OCF < 35, Forward PE und Piotroski F-Score..."
 )
 
 results = []
@@ -576,11 +559,6 @@ for i, (_, fv_row) in enumerate(df_finviz.iterrows()):
     res = evaluate_candidate(ticker, fv_mcap_b, fv_comp, fv_sec, max_fwd_pe, min_piotroski)
     if res is not None:
         norm_comp = normalize_company_name(res["Unternehmen"])
-        if gevx_names:
-            res["Global Ethical Values"] = "JA" if matches_name_set(norm_comp, gevx_names) else "NEIN"
-        else:
-            res["Global Ethical Values"] = f"N/A ({gevx_status})"
-
         is_gd = (ticker in GLASSDOOR_2026_TICKERS) or matches_name_set(norm_comp, gd_names)
         res["Glassdoor 100"] = "JA" if is_gd else "NEIN"
 
@@ -599,8 +577,6 @@ df_final = pd.DataFrame(results)
 if not df_final.empty:
     if moat_filter:
         df_final = df_final[df_final["Wide-Moat ETF"] == "JA"]
-    if ethical_filter:
-        df_final = df_final[df_final["Global Ethical Values"] == "JA"]
     if glassdoor_filter:
         df_final = df_final[df_final["Glassdoor 100"] == "JA"]
 
@@ -637,8 +613,8 @@ st.markdown(
     f"""
     <div style="font-size: 0.85rem; color: #555;">
         <p><b>* Hinweise zu den Prüfquellen:</b><br>
+        - <b>Cashflow-Bewertung:</b> Verwendet den Operativen Cash Flow (<b>OCF &gt; 0</b> und <b>EV/OCF &lt; 35</b>).<br>
         - <b>Wide-Moat ETF (MOAT):</b> Live-Abfrage der ETF-Halter via Finviz (<code>ticker_etf_holders</code>).<br>
-        - <b>Global Ethical Values (GEVX):</b> Live-Abgleich mit <a href="https://www.boerse-hannover.de/nachhaltigkeit/gevx/gevx-einzelwerte/" target="_blank">Börse Hannover</a> (Status: {gevx_status}).<br>
         - <b>Glassdoor Best Places to Work 2026:</b> Offizielle 2026er-Auszeichnung (<a href="https://www.glassdoor.com/Award/Best-Places-to-Work-LST_KQ0,19.htm" target="_blank">Glassdoor U.S. 2026</a>, Status: {gd_status}).</p>
     </div>
     """,
