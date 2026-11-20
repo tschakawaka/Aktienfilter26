@@ -1,4 +1,4 @@
-
+import importlib.metadata
 import re
 from datetime import datetime
 
@@ -31,6 +31,11 @@ st.markdown(
     "**ROIC > 15%** | **FCF > 0** | **EV/FCF < 35** | **Forward PE < Limit** | **Kurs > SMA-200** | **Piotroski ≥ 7**"
 )
 
+try:
+    fv_version = importlib.metadata.version("finvizfinance")
+except Exception:
+    fv_version = "unbekannt"
+
 # ⚙️ Sidebar Steuerung
 st.sidebar.header("⚙️ Live-Filter Einstellungen")
 max_fwd_pe = st.sidebar.slider("📉 Max. Forward PE", min_value=15, max_value=60, value=40, step=1)
@@ -47,6 +52,8 @@ validate_gf = st.sidebar.checkbox("🔍 GuruFocus F-Score Live-Check (langsam)",
 if st.sidebar.button("🔄 Cache leeren & Live neu scannen", type="primary"):
     st.cache_data.clear()
     st.rerun()
+
+st.sidebar.caption(f"Installierte finvizfinance-Version: `{fv_version}`")
 
 
 # --- HILFSFUNKTIONEN ---
@@ -171,12 +178,25 @@ def fetch_finviz_prefiltered(limit: int):
         "&f=cap_midover,fa_roi_o15,fa_sales5years_pos,fa_eps5years_pos,ta_sma200_pa,ta_perf_26wup,ind_stocksonly"
     )
     try:
-        fscreen = screener.from_url(finviz_url)
-        orders = fscreen.get_orders()
-        if "Market Cap." in orders:
-            df = fscreen.screener_view(order="Market Cap.", ascend=False, limit=limit, verbose=0)
+        if hasattr(screener, "from_url"):
+            fscreen = screener.from_url(finviz_url)
         else:
+            from finvizfinance.screener.overview import Overview
+            fscreen = Overview()
+            fscreen.set_filter(
+                filters_dict={
+                    "Market Cap.": "+Mid (over $2bln)",
+                    "Return on Investment": "Over +15%",
+                    "200-Day Simple Moving Average": "Price above SMA200",
+                    "Performance": "Half Year Up",
+                }
+            )
+
+        try:
+            df = fscreen.screener_view(order="Market Cap.", ascend=False, limit=limit, verbose=0)
+        except Exception:
             df = fscreen.screener_view(limit=limit, verbose=0)
+
         if df is None or df.empty:
             return pd.DataFrame(), None
         return df, None
@@ -498,7 +518,7 @@ with st.spinner(f"2/3 Frage Finviz Live-Screener ab (max. {scan_limit} Top-Kandi
 if fv_error or df_finviz.empty:
     st.error(
         f"Finviz Live-Abfrage lieferte aktuell keine Daten ({fv_error or '0 Treffer / Rate-Limit'}). "
-        "Es werden bewusst KEINE statischen Beispiel-Aktien als Ersatz angezeigt."
+        f"(finvizfinance-Version: {fv_version}). Es werden bewusst KEINE statischen Beispiel-Aktien als Ersatz angezeigt."
     )
     st.stop()
 
